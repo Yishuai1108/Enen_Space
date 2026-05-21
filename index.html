@@ -167,11 +167,6 @@ const SUPA_URL = 'https://ozrjgqhxivovnmvpkrfs.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96cmpncWh4aXZvdm5tdnBrcmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjI4NjUsImV4cCI6MjA5NDg5ODg2NX0.pbLhR_tmmlp0logAUnVBUqfjpbxxmQOXLvHByLZ2wVo';
 const BUCKET = 'photos';
 
-/* Frontend-only performance fixes: no Supabase table/bucket/schema changes */
-const MAX_IMAGE_SIDE = 1600;
-const JPEG_QUALITY = 0.78;
-const MAX_ORBIT_PHOTOS = 28;
-
 /* Supabase helpers — no SDK needed, pure fetch */
 async function sbSelect(table, order='created_at', asc=false){
   const r = await fetch(
@@ -212,64 +207,31 @@ async function sbDelete(table, id){
   if(!r.ok) throw new Error(await r.text());
 }
 
-function compressImageFile(file){
-  return new Promise(resolve=>{
-    if(!file.type || !file.type.startsWith('image/')) return resolve(file);
-
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    img.onload = () => {
-      try{
-        let width = img.width;
-        let height = img.height;
-        const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height));
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(blob=>{
-          URL.revokeObjectURL(objectUrl);
-          if(!blob) return resolve(file);
-
-          const compressed = new File(
-            [blob],
-            file.name.replace(/\.[^.]+$/, '') + '.jpg',
-            {type:'image/jpeg'}
-          );
-          resolve(compressed);
-        }, 'image/jpeg', JPEG_QUALITY);
-      }catch(e){
-        URL.revokeObjectURL(objectUrl);
-        resolve(file);
-      }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-
-    img.src = objectUrl;
-  });
-}
-
 async function sbUploadFile(file){
-  const uploadFile = await compressImageFile(file);
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-  const r = await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${path}`, {
-    method:'POST',
-    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
-              'Content-Type': uploadFile.type || 'image/jpeg'},
-    body: uploadFile
+  /* compress before upload */
+  const compressed = await new Promise(resolve=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const MAX=1080;
+      let w=img.width,h=img.height;
+      const scale=Math.min(1,MAX/Math.max(w,h));
+      w=Math.round(w*scale);h=Math.round(h*scale);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=>resolve(b||file),'image/jpeg',0.75);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
   });
-  if(!r.ok) throw new Error(await r.text());
+  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+  const r=await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${path}`,{
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'image/jpeg'},
+    body:compressed
+  });
+  if(!r.ok)throw new Error(await r.text());
   return `${SUPA_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
 
@@ -283,7 +245,7 @@ function showToast(msg, ms=2800){
    APP STATE
 ═══════════════════════════════════════════════════ */
 const PASSWORD = '970025';
-const RABBIT_IP = '50.175.124.186';
+const RABBIT_IP = '2001:4860:7:f0e::7c';
 const RABBIT_IP_NORMALIZED = RABBIT_IP.toLowerCase().trim();
 let currentUserName = '猪宝';
 let globalSceneUnlock = false;
@@ -419,7 +381,7 @@ function renderStack(animateTop=false){
     card.style.setProperty('--enterX',`${direction*70}px`);card.style.setProperty('--enterR',`${direction*12}deg`);
     card.style.setProperty('--flipX',`${direction*-90}px`);card.style.setProperty('--flipR',`${direction*-14}deg`);
     card.dataset.label=`${m.owner||'猪宝'} · ${m.title||'Uploaded Memory'}`;
-    card.innerHTML=`<img loading="lazy" decoding="async" src="${m.image}" alt="${m.title||'memory'}">`;
+    card.innerHTML=`<img src="${m.image}" alt="${m.title||'memory'}">`;
     photoStack.appendChild(card);
   }
 }
@@ -443,7 +405,7 @@ function renderGallery(){
       const index=memories.indexOf(m);
       const item=document.createElement('div');
       item.className='gallery-item';item.style.setProperty('--r',`${[-2,1.5,-1,2.2,-1.8][index%5]}deg`);
-      item.innerHTML=`<img loading="lazy" decoding="async" src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
+      item.innerHTML=`<img src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
       item.querySelector('img').addEventListener('click',()=>openGalleryImage(index));
 
       /* inline title edit → sync to Supabase */
@@ -515,11 +477,11 @@ uploadInput.addEventListener('change',async e=>{
   const files=Array.from(e.target.files||[]);
   if(!files.length)return;
   uploadInput.value='';
-  showToast(`Compressing + uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
+  showToast(`Uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
 
   for(const file of files){
     try{
-      /* 1. compress locally, then upload image to Supabase Storage */
+      /* 1. upload image to Supabase Storage */
       const publicUrl = await sbUploadFile(file);
 
       /* 2. insert row into photos table */
@@ -538,7 +500,7 @@ uploadInput.addEventListener('change',async e=>{
       /* 3. add to local memories array */
       const mem = dbRowToMemory(inserted);
       memories.unshift(mem);
-      rebuildFloatingPhotos();
+      addPhotoNearPlanet(mem.image, 0);
       renderGallery();
       if(currentView==='space'&&introDone) openStackOverlay(0);
 
@@ -556,19 +518,16 @@ uploadInput.addEventListener('change',async e=>{
 let scene,camera,renderer,runtimeClock,planetPrimary,planetSecondary,floatingPhotoGroup,orbitParticles,planetSwarm;
 let clickableObjects=[];let mouse=new THREE.Vector2();let raycaster=new THREE.Raycaster();
 (function generateDynamicUniverse(){
-  const container=document.getElementById('canvas-container');scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x04040b,.045);camera=new THREE.PerspectiveCamera(58,window.innerWidth/window.innerHeight,.1,120);camera.position.set(0,1.4,11);renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));container.appendChild(renderer.domElement);runtimeClock=new THREE.Clock();scene.add(new THREE.AmbientLight(0xffffff,.5));const key=new THREE.PointLight(0xffb199,1.5,40);key.position.set(-4,4,8);scene.add(key);const fill=new THREE.PointLight(0x78ffd6,1.1,30);fill.position.set(5,-2,6);scene.add(fill);createStarField();createPlanets();createPlanetSwarm();createOrbitParticles();createFloatingPhotoGroup();renderer.domElement.addEventListener('click',handleSceneClick);window.addEventListener('resize',onResize);globalLoop();
+  const container=document.getElementById('canvas-container');scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x04040b,.045);camera=new THREE.PerspectiveCamera(58,window.innerWidth/window.innerHeight,.1,120);camera.position.set(0,1.4,11);renderer=new THREE.WebGLRenderer({antialias:false,alpha:true,powerPreference:'low-power'});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,1));container.appendChild(renderer.domElement);runtimeClock=new THREE.Clock();scene.add(new THREE.AmbientLight(0xffffff,.5));const key=new THREE.PointLight(0xffb199,1.5,40);key.position.set(-4,4,8);scene.add(key);const fill=new THREE.PointLight(0x78ffd6,1.1,30);fill.position.set(5,-2,6);scene.add(fill);createStarField();createPlanets();createPlanetSwarm();createOrbitParticles();createFloatingPhotoGroup();renderer.domElement.addEventListener('click',handleSceneClick);window.addEventListener('resize',onResize);globalLoop();
 })();
-function createStarField(){const geo=new THREE.BufferGeometry(),count=1200,pos=new Float32Array(count*3);for(let i=0;i<count*3;i++)pos[i]=(Math.random()-.5)*90;geo.setAttribute('position',new THREE.BufferAttribute(pos,3));scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0xffffff,size:.035,transparent:true,opacity:.75})))}
+function createStarField(){const geo=new THREE.BufferGeometry(),count=600,pos=new Float32Array(count*3);for(let i=0;i<count*3;i++)pos[i]=(Math.random()-.5)*90;geo.setAttribute('position',new THREE.BufferAttribute(pos,3));scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0xffffff,size:.05,transparent:true,opacity:.75})))}
 function createPlanetTexture(colorA,colorB){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d'),g=ctx.createRadialGradient(180,150,20,260,260,300);g.addColorStop(0,'#ffffff');g.addColorStop(.18,colorA);g.addColorStop(1,colorB);ctx.fillStyle=g;ctx.fillRect(0,0,512,512);for(let i=0;i<16;i++){ctx.strokeStyle=`rgba(255,255,255,${Math.random()*.12})`;ctx.lineWidth=10+Math.random()*30;ctx.beginPath();ctx.ellipse(260,110+i*26,250,20+Math.random()*18,Math.random()*.2,0,Math.PI*2);ctx.stroke()}return new THREE.CanvasTexture(canvas)}
-function createPlanets(){const geo=new THREE.SphereGeometry(1.35,96,96);planetPrimary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#D95D39','#35101b'),roughness:.72,metalness:.08}));planetSecondary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#62c7a7','#0b2d34'),roughness:.72,metalness:.08}));planetPrimary.userData={type:'planet',index:0};planetSecondary.userData={type:'planet',index:1};scene.add(planetPrimary,planetSecondary);clickableObjects.push(planetPrimary,planetSecondary);const ringGeo=new THREE.TorusGeometry(1.95,.012,12,180),ringMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.22});const ring1=new THREE.Mesh(ringGeo,ringMat);ring1.rotation.x=Math.PI/2.5;planetPrimary.add(ring1);const ring2=new THREE.Mesh(ringGeo,ringMat.clone());ring2.rotation.x=Math.PI/2.7;ring2.rotation.z=.4;planetSecondary.add(ring2)}
-function createPlanetSwarm(){planetSwarm=new THREE.Group();const geo=new THREE.SphereGeometry(.18,32,32),colors=[['#d95d39','#35101b'],['#62c7a7','#0b2d34'],['#ffb7a5','#3b1515'],['#c8fff0','#153a36']];for(let i=0;i<36;i++){const c=colors[i%colors.length],m=new THREE.MeshStandardMaterial({map:createPlanetTexture(c[0],c[1]),roughness:.8,transparent:true,opacity:0});const p=new THREE.Mesh(geo.clone(),m),a=i/36*Math.PI*2,r=2.2+Math.random()*5.8;p.position.set(Math.cos(a)*r,(Math.random()-.5)*3.6,Math.sin(a)*r);p.scale.setScalar(.45+Math.random()*.8);p.userData={a,r,off:Math.random()*6};planetSwarm.add(p)}scene.add(planetSwarm)}
-function createOrbitParticles(){orbitParticles=new THREE.Group();const geo=new THREE.SphereGeometry(.035,10,10);for(let i=0;i<90;i++){const mat=new THREE.MeshBasicMaterial({color:i%2?0xD95D39:0x77d6bd,transparent:true,opacity:.65}),p=new THREE.Mesh(geo,mat),a=i/90*Math.PI*2,r=4.1+Math.random()*1.4;p.position.set(Math.cos(a)*r,(Math.random()-.5)*1.8,Math.sin(a)*r);orbitParticles.add(p)}scene.add(orbitParticles)}
+function createPlanets(){const geo=new THREE.SphereGeometry(1.35,48,48);planetPrimary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#D95D39','#35101b'),roughness:.72,metalness:.08}));planetSecondary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#62c7a7','#0b2d34'),roughness:.72,metalness:.08}));planetPrimary.userData={type:'planet',index:0};planetSecondary.userData={type:'planet',index:1};scene.add(planetPrimary,planetSecondary);clickableObjects.push(planetPrimary,planetSecondary);const ringGeo=new THREE.TorusGeometry(1.95,.012,6,80),ringMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.22});const ring1=new THREE.Mesh(ringGeo,ringMat);ring1.rotation.x=Math.PI/2.5;planetPrimary.add(ring1);const ring2=new THREE.Mesh(ringGeo,ringMat.clone());ring2.rotation.x=Math.PI/2.7;ring2.rotation.z=.4;planetSecondary.add(ring2)}
+function createPlanetSwarm(){planetSwarm=new THREE.Group();const geo=new THREE.SphereGeometry(.18,16,16),colors=[['#d95d39','#35101b'],['#62c7a7','#0b2d34'],['#ffb7a5','#3b1515'],['#c8fff0','#153a36']];for(let i=0;i<16;i++){const c=colors[i%colors.length],m=new THREE.MeshStandardMaterial({map:createPlanetTexture(c[0],c[1]),roughness:.8,transparent:true,opacity:0});const p=new THREE.Mesh(geo.clone(),m),a=i/16*Math.PI*2,r=2.2+Math.random()*5.8;p.position.set(Math.cos(a)*r,(Math.random()-.5)*3.6,Math.sin(a)*r);p.scale.setScalar(.45+Math.random()*.8);p.userData={a,r,off:Math.random()*6};planetSwarm.add(p)}scene.add(planetSwarm)}
+function createOrbitParticles(){orbitParticles=new THREE.Group();const geo=new THREE.SphereGeometry(.035,6,6);for(let i=0;i<40;i++){const mat=new THREE.MeshBasicMaterial({color:i%2?0xD95D39:0x77d6bd,transparent:true,opacity:.65}),p=new THREE.Mesh(geo,mat),a=i/40*Math.PI*2,r=4.1+Math.random()*1.4;p.position.set(Math.cos(a)*r,(Math.random()-.5)*1.8,Math.sin(a)*r);orbitParticles.add(p)}scene.add(orbitParticles)}
 function createFloatingPhotoGroup(){floatingPhotoGroup=new THREE.Group();scene.add(floatingPhotoGroup)}
 function clearFloatingPhotos(){clickableObjects=clickableObjects.filter(obj=>obj.userData.type!=='photo');while(floatingPhotoGroup.children.length){const child=floatingPhotoGroup.children.pop();if(child.material&&child.material.map)child.material.map.dispose();if(child.material)child.material.dispose()}}
-function rebuildFloatingPhotos(){
-  clearFloatingPhotos();
-  memories.slice(0, MAX_ORBIT_PHOTOS).forEach((m,index)=>addPhotoNearPlanet(m.image,index));
-}
+function rebuildFloatingPhotos(){clearFloatingPhotos();memories.slice(0,6).forEach((m,index)=>addPhotoNearPlanet(m.image,index))}
 function addPhotoNearPlanet(imageUrl,index){if(!floatingPhotoGroup)return;const texture=new THREE.TextureLoader().load(imageUrl),material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.92}),sprite=new THREE.Sprite(material),angle=index*.88,radius=2.8+(index%3)*.34;texture.onUpdate=function(){const img=texture.image;if(img&&img.width&&img.height){const aspect=img.width/img.height,base=1.05;if(aspect>=1){sprite.scale.set(base*aspect,base,1);}else{sprite.scale.set(base,base/aspect,1);}}};sprite.scale.set(1.05,1.05,1);sprite.position.set(Math.cos(angle)*radius,Math.sin(angle*1.35)*1.15,Math.sin(angle)*radius);sprite.userData={type:'photo',index};floatingPhotoGroup.add(sprite);clickableObjects.push(sprite)}
 function handleSceneClick(event){if(!globalSceneUnlock||currentView!=='space'||!introDone)return;mouse.x=event.clientX/window.innerWidth*2-1;mouse.y=-(event.clientY/window.innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(clickableObjects,true);if(hits.length){let obj=hits[0].object;while(obj&&!obj.userData.type)obj=obj.parent;if(!obj)return;openStackOverlay(obj.userData.index||0)}}
 function easeInOutQuart(x){return x<.5?8*x*x*x*x:1-Math.pow(-2*x+2,4)/2}
