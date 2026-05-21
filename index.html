@@ -167,6 +167,11 @@ const SUPA_URL = 'https://ozrjgqhxivovnmvpkrfs.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96cmpncWh4aXZvdm5tdnBrcmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjI4NjUsImV4cCI6MjA5NDg5ODg2NX0.pbLhR_tmmlp0logAUnVBUqfjpbxxmQOXLvHByLZ2wVo';
 const BUCKET = 'photos';
 
+/* Frontend-only performance fixes: no Supabase table/bucket/schema changes */
+const MAX_IMAGE_SIDE = 1600;
+const JPEG_QUALITY = 0.78;
+const MAX_ORBIT_PHOTOS = 28;
+
 /* Supabase helpers — no SDK needed, pure fetch */
 async function sbSelect(table, order='created_at', asc=false){
   const r = await fetch(
@@ -207,14 +212,62 @@ async function sbDelete(table, id){
   if(!r.ok) throw new Error(await r.text());
 }
 
+function compressImageFile(file){
+  return new Promise(resolve=>{
+    if(!file.type || !file.type.startsWith('image/')) return resolve(file);
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      try{
+        let width = img.width;
+        let height = img.height;
+        const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height));
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(blob=>{
+          URL.revokeObjectURL(objectUrl);
+          if(!blob) return resolve(file);
+
+          const compressed = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, '') + '.jpg',
+            {type:'image/jpeg'}
+          );
+          resolve(compressed);
+        }, 'image/jpeg', JPEG_QUALITY);
+      }catch(e){
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 async function sbUploadFile(file){
-  const ext = file.name.split('.').pop() || 'jpg';
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const uploadFile = await compressImageFile(file);
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
   const r = await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method:'POST',
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
-              'Content-Type': file.type || 'image/jpeg'},
-    body: file
+              'Content-Type': uploadFile.type || 'image/jpeg'},
+    body: uploadFile
   });
   if(!r.ok) throw new Error(await r.text());
   return `${SUPA_URL}/storage/v1/object/public/${BUCKET}/${path}`;
@@ -366,7 +419,7 @@ function renderStack(animateTop=false){
     card.style.setProperty('--enterX',`${direction*70}px`);card.style.setProperty('--enterR',`${direction*12}deg`);
     card.style.setProperty('--flipX',`${direction*-90}px`);card.style.setProperty('--flipR',`${direction*-14}deg`);
     card.dataset.label=`${m.owner||'猪宝'} · ${m.title||'Uploaded Memory'}`;
-    card.innerHTML=`<img src="${m.image}" alt="${m.title||'memory'}">`;
+    card.innerHTML=`<img loading="lazy" decoding="async" src="${m.image}" alt="${m.title||'memory'}">`;
     photoStack.appendChild(card);
   }
 }
@@ -390,7 +443,7 @@ function renderGallery(){
       const index=memories.indexOf(m);
       const item=document.createElement('div');
       item.className='gallery-item';item.style.setProperty('--r',`${[-2,1.5,-1,2.2,-1.8][index%5]}deg`);
-      item.innerHTML=`<img src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
+      item.innerHTML=`<img loading="lazy" decoding="async" src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
       item.querySelector('img').addEventListener('click',()=>openGalleryImage(index));
 
       /* inline title edit → sync to Supabase */
@@ -462,11 +515,11 @@ uploadInput.addEventListener('change',async e=>{
   const files=Array.from(e.target.files||[]);
   if(!files.length)return;
   uploadInput.value='';
-  showToast(`Uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
+  showToast(`Compressing + uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
 
   for(const file of files){
     try{
-      /* 1. upload image to Supabase Storage */
+      /* 1. compress locally, then upload image to Supabase Storage */
       const publicUrl = await sbUploadFile(file);
 
       /* 2. insert row into photos table */
@@ -485,7 +538,7 @@ uploadInput.addEventListener('change',async e=>{
       /* 3. add to local memories array */
       const mem = dbRowToMemory(inserted);
       memories.unshift(mem);
-      addPhotoNearPlanet(mem.image, 0);
+      rebuildFloatingPhotos();
       renderGallery();
       if(currentView==='space'&&introDone) openStackOverlay(0);
 
@@ -512,7 +565,10 @@ function createPlanetSwarm(){planetSwarm=new THREE.Group();const geo=new THREE.S
 function createOrbitParticles(){orbitParticles=new THREE.Group();const geo=new THREE.SphereGeometry(.035,10,10);for(let i=0;i<90;i++){const mat=new THREE.MeshBasicMaterial({color:i%2?0xD95D39:0x77d6bd,transparent:true,opacity:.65}),p=new THREE.Mesh(geo,mat),a=i/90*Math.PI*2,r=4.1+Math.random()*1.4;p.position.set(Math.cos(a)*r,(Math.random()-.5)*1.8,Math.sin(a)*r);orbitParticles.add(p)}scene.add(orbitParticles)}
 function createFloatingPhotoGroup(){floatingPhotoGroup=new THREE.Group();scene.add(floatingPhotoGroup)}
 function clearFloatingPhotos(){clickableObjects=clickableObjects.filter(obj=>obj.userData.type!=='photo');while(floatingPhotoGroup.children.length){const child=floatingPhotoGroup.children.pop();if(child.material&&child.material.map)child.material.map.dispose();if(child.material)child.material.dispose()}}
-function rebuildFloatingPhotos(){clearFloatingPhotos();memories.forEach((m,index)=>addPhotoNearPlanet(m.image,index))}
+function rebuildFloatingPhotos(){
+  clearFloatingPhotos();
+  memories.slice(0, MAX_ORBIT_PHOTOS).forEach((m,index)=>addPhotoNearPlanet(m.image,index));
+}
 function addPhotoNearPlanet(imageUrl,index){if(!floatingPhotoGroup)return;const texture=new THREE.TextureLoader().load(imageUrl),material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.92}),sprite=new THREE.Sprite(material),angle=index*.88,radius=2.8+(index%3)*.34;texture.onUpdate=function(){const img=texture.image;if(img&&img.width&&img.height){const aspect=img.width/img.height,base=1.05;if(aspect>=1){sprite.scale.set(base*aspect,base,1);}else{sprite.scale.set(base,base/aspect,1);}}};sprite.scale.set(1.05,1.05,1);sprite.position.set(Math.cos(angle)*radius,Math.sin(angle*1.35)*1.15,Math.sin(angle)*radius);sprite.userData={type:'photo',index};floatingPhotoGroup.add(sprite);clickableObjects.push(sprite)}
 function handleSceneClick(event){if(!globalSceneUnlock||currentView!=='space'||!introDone)return;mouse.x=event.clientX/window.innerWidth*2-1;mouse.y=-(event.clientY/window.innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(clickableObjects,true);if(hits.length){let obj=hits[0].object;while(obj&&!obj.userData.type)obj=obj.parent;if(!obj)return;openStackOverlay(obj.userData.index||0)}}
 function easeInOutQuart(x){return x<.5?8*x*x*x*x:1-Math.pow(-2*x+2,4)/2}
