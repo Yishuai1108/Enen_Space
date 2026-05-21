@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>♥Enen Space♥</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Syne:wght@400;600;800&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#D95D39;--s:#458B74;--bg:#04040b;--line:rgba(255,255,255,.16);--peach:#ffb7a5;--mint:#8ee8cd}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:'Space Grotesk',sans-serif}
+body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:.04}
+#canvas-container{position:fixed;inset:0;z-index:1;cursor:grab}
+#canvas-container:active{cursor:grabbing}
+.hidden{display:none!important}
+button,input,label{font-family:inherit}
+
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:40;display:none;align-items:center;background:rgba(15,15,22,.9);border-bottom:1px solid rgba(217,93,57,.22);box-shadow:0 8px 30px rgba(217,93,57,.08);backdrop-filter:blur(18px)}
+.logo-icon{width:118px;height:64px;display:flex;align-items:center;justify-content:center;color:#ffb7a5;font-size:30px;text-shadow:0 0 18px rgba(255,183,165,.25)}
+.nav{height:100%;display:flex;align-items:center;gap:34px}
+.nav button{border:0;background:transparent;color:rgba(255,225,218,.68);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:23px 0 18px;border-bottom:2px solid transparent;transition:.22s}
+.nav button:hover,.nav button.active{color:#ffd1c7;border-bottom-color:#ff9a80}
+#photo-upload{display:none}
+
+.upload-orbit{position:fixed;right:26px;top:82px;z-index:42;display:none;width:104px;height:58px;border-radius:999px;border:1px solid rgba(255,183,165,.36);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(255,111,67,.18) 42%,rgba(7,7,15,.82));color:#fff;cursor:pointer;backdrop-filter:blur(14px);box-shadow:0 0 30px rgba(255,111,67,.18);align-items:center;justify-content:center;gap:7px;transition:.22s transform,.22s box-shadow}
+.upload-orbit::before{content:"";position:absolute;inset:-7px;border:1px solid rgba(142,232,205,.24);border-radius:999px;transform:rotate(-8deg) scaleX(1.08)}
+.upload-orbit::after{content:"✦";position:absolute;right:-7px;top:-6px;color:#8ee8cd;font-size:15px;animation:twinkle 1.6s ease-in-out infinite alternate}
+.upload-orbit span{position:relative;z-index:2;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.upload-orbit span::before{content:'⇡ ';font-size:18px;vertical-align:-2px}
+.upload-orbit:hover{transform:translateY(-2px);box-shadow:0 0 42px rgba(255,183,165,.28)}
+@keyframes twinkle{from{opacity:.35;transform:scale(.9)}to{opacity:1;transform:scale(1.15)}}
+.music-btn{position:fixed;right:142px;top:91px;z-index:42;display:none;width:40px;height:40px;border-radius:999px;border:1px solid rgba(142,232,205,.28);background:rgba(255,255,255,.08);color:#bfffea;cursor:pointer;backdrop-filter:blur(14px);box-shadow:0 0 24px rgba(142,232,205,.12);font-size:17px}.music-btn.playing{background:rgba(142,232,205,.2);color:#fff}.user-badge-global{position:fixed;left:24px;bottom:24px;z-index:42;display:none;padding:10px 14px;border:1px solid rgba(142,232,205,.28);border-radius:999px;background:rgba(69,139,116,.18);font-family:'JetBrains Mono',monospace;font-size:11px;color:#bfffea;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(12px)}
+
+/* upload status toast */
+#upload-toast{position:fixed;bottom:28px;right:28px;z-index:9000;padding:12px 18px;border-radius:12px;border:1px solid rgba(142,232,205,.3);background:rgba(10,20,18,.88);font-family:'JetBrains Mono',monospace;font-size:11px;color:#8ee8cd;letter-spacing:.08em;backdrop-filter:blur(16px);opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
+#upload-toast.show{opacity:1;transform:translateY(0)}
+
+#password-screen{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(217,93,57,.18),transparent 38%),rgba(4,4,11,.48);backdrop-filter:blur(1px)}
+.login-card{width:min(420px,88vw);padding:34px 30px;border:1px solid rgba(255,255,255,.18);background:rgba(8,8,18,.56);backdrop-filter:blur(20px);border-radius:28px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}
+.login-card h1{font-family:'Syne',sans-serif;font-size:32px;letter-spacing:-.04em;margin-bottom:10px;color:#ffb7a5}
+.login-card p{font-size:13px;opacity:.7;margin-bottom:24px;line-height:1.6}
+.login-card em{font-style:normal;opacity:.72;font-size:12px;color:#bfffea}
+.pass-row{display:flex;gap:10px}
+#password-input{flex:1;padding:14px 16px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.08);color:#fff;outline:none;font-size:14px}
+#password-input::placeholder{color:rgba(255,255,255,.42)}
+.primary-btn{border:0;border-radius:999px;padding:14px 18px;background:#fff;color:#07070f;font-weight:700;cursor:pointer;transition:.25s transform,.25s opacity}
+.primary-btn:hover{transform:translateY(-1px);opacity:.88}
+#password-error{font-size:12px;color:#ff9d8b;margin-top:14px;min-height:16px}
+
+#hint{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:30;display:none;text-align:center;color:rgba(255,255,255,.72);font-size:12px;letter-spacing:.04em;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:10px 16px;backdrop-filter:blur(12px)}
+#intro-label{position:fixed;left:50%;top:50%;transform:translate(-50%,190px);z-index:34;display:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:rgba(255,225,218,.66);text-transform:uppercase;pointer-events:none}
+
+#overlay-panel{position:fixed;inset:0;z-index:55;display:none;background:rgba(3,3,8,.54);backdrop-filter:blur(8px)}
+#overlay-panel.active{display:block}
+.overlay-bg-stars{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(217,93,57,.12),transparent 35%),radial-gradient(circle at 60% 55%,rgba(69,139,116,.1),transparent 38%)}
+.overlay-close{position:absolute;top:82px;right:34px;width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.38);color:#fff;font-size:24px;cursor:pointer;z-index:6}
+.overlay-title{position:absolute;top:106px;left:72px;z-index:5;max-width:360px;pointer-events:none}
+.overlay-title .k{font-family:'JetBrains Mono',monospace;font-size:9px;color:#8ee8cd;letter-spacing:.24em;text-transform:uppercase;margin-bottom:8px}
+.overlay-title h2{font-family:'Syne',sans-serif;font-size:42px;line-height:.92;letter-spacing:-.07em;color:#ffb7a5;text-shadow:0 0 22px rgba(255,183,165,.18)}
+.overlay-title p{margin-top:10px;font-size:11px;line-height:1.55;color:rgba(255,225,218,.52);max-width:320px}
+.stack-stage{position:absolute;inset:64px 0 0 0;display:flex;align-items:center;justify-content:center;perspective:1200px;cursor:pointer}
+.photo-stack{position:relative;width:390px;height:500px;transform-style:preserve-3d}
+.stack-card{position:absolute;left:0;top:0;width:390px;height:500px;background:#f5f1f4;padding:14px 14px 54px;border-radius:3px;box-shadow:0 28px 70px rgba(0,0,0,.45);transition:.68s cubic-bezier(.18,.9,.18,1);transform:translate(var(--x),var(--y)) rotate(var(--r)) scale(var(--scale));opacity:var(--op);z-index:var(--z);animation:cardIn .58s cubic-bezier(.18,.9,.18,1) both}
+.stack-card img{width:100%;height:100%;object-fit:cover;display:block;background:#000;border:1px solid rgba(0,0,0,.08);transition:.35s transform}
+.stack-card:hover img{transform:scale(1.025)}
+.stack-card::after{content:attr(data-label);position:absolute;left:16px;right:16px;bottom:18px;color:#111;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack-card.top-card{animation:topFlip .62s cubic-bezier(.18,.9,.18,1) both}
+@keyframes cardIn{0%{opacity:0;transform:translate(calc(var(--x) + var(--enterX)),calc(var(--y) + 36px)) rotate(calc(var(--r) + var(--enterR))) scale(.9)}58%{opacity:1;transform:translate(calc(var(--x) - var(--enterX) * .1),calc(var(--y) - 12px)) rotate(calc(var(--r) * .65)) scale(calc(var(--scale) + .035))}100%{opacity:var(--op);transform:translate(var(--x),var(--y)) rotate(var(--r)) scale(var(--scale))}}
+@keyframes topFlip{0%{transform:translate(var(--flipX),30px) rotate(var(--flipR)) scale(.92);opacity:.32}42%{transform:translate(calc(var(--x) - var(--flipX) * .12),calc(var(--y) - 28px)) rotate(calc(var(--r) * .24)) scale(1.045);opacity:1}78%{transform:translate(calc(var(--x) + var(--flipX) * .035),calc(var(--y) + 6px)) rotate(calc(var(--r) * 1.08)) scale(calc(var(--scale) - .01));opacity:var(--op)}100%{transform:translate(var(--x),var(--y)) rotate(var(--r)) scale(var(--scale));opacity:var(--op)}}
+.stack-note{position:absolute;left:50%;top:calc(50% + 300px);transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.58);letter-spacing:.08em;text-transform:uppercase}
+.owner-pill{position:absolute;left:72px;bottom:42px;z-index:5;padding:10px 14px;border:1px solid rgba(142,232,205,.28);border-radius:999px;background:rgba(69,139,116,.18);font-family:'JetBrains Mono',monospace;font-size:11px;color:#bfffea;letter-spacing:.08em;text-transform:uppercase}
+
+#gallery-view{position:fixed;inset:64px 0 0 0;z-index:28;display:none;padding:58px 56px;background:rgba(4,4,11,.54);backdrop-filter:blur(8px);overflow-y:auto}
+#gallery-view.active{display:block}
+.gallery-head{max-width:1180px;margin:0 auto 30px;display:flex;justify-content:space-between;align-items:end;gap:18px}
+.gallery-head h2{font-family:'Syne',sans-serif;font-size:46px;letter-spacing:-.06em;color:#ffb7a5}
+.gallery-head p{opacity:.62;font-size:13px;margin-top:6px}
+.timeline{max-width:1180px;margin:0 auto 70px;position:relative;padding-left:34px}
+.timeline::before{content:"";position:absolute;left:8px;top:10px;bottom:10px;width:1px;background:linear-gradient(rgba(142,232,205,.4),rgba(255,183,165,.15))}
+.month-group{position:relative;margin-bottom:36px}.month-title{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8ee8cd;letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px}.month-title::before{content:"";position:absolute;left:-31px;top:2px;width:11px;height:11px;border-radius:50%;background:#8ee8cd;box-shadow:0 0 18px rgba(142,232,205,.65)}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:22px}
+.gallery-item{height:286px;background:#f5f1f4;padding:12px 12px 60px;border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.34);cursor:pointer;transition:.25s transform,.25s opacity;transform:rotate(var(--r));position:relative;color:#111}
+.gallery-item:hover{transform:translateY(-6px) rotate(var(--r)) scale(1.02);opacity:.95}
+.gallery-item img{width:100%;height:100%;object-fit:cover;display:block;border:1px solid rgba(0,0,0,.08);background:#000}
+.gallery-meta{position:absolute;left:13px;right:48px;bottom:12px;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.35;color:#111;text-transform:uppercase}.gallery-title-edit{font-size:11px;font-weight:700;outline:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gallery-sub{opacity:.7}
+.heart-btn{position:absolute;right:10px;bottom:18px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.58);color:#d95d39;cursor:pointer;font-size:14px;transition:.2s}.heart-btn:hover,.heart-btn.active{background:#ffd8d0;color:#9b2f21;transform:scale(1.06)}.card-actions{position:absolute;right:10px;bottom:52px;display:none;flex-direction:column;gap:6px;z-index:5}.card-actions.active{display:flex;animation:menuPop .18s ease both}.card-actions button{border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.9);color:#111;border-radius:999px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;cursor:pointer}.card-actions button:hover{background:#111;color:#fff}@keyframes menuPop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+#gallery-fullscreen{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.9);padding:34px;cursor:pointer}
+#gallery-fullscreen.active{display:flex;animation:galleryFade .28s ease both}
+#gallery-fullscreen img{max-width:90vw;max-height:88vh;object-fit:contain;border-radius:18px;border:12px solid #f5f1f4;box-shadow:0 30px 90px rgba(0,0,0,.55);animation:galleryImageIn .38s cubic-bezier(.18,.9,.18,1) both}
+@keyframes galleryFade{from{opacity:0}to{opacity:1}}@keyframes galleryImageIn{from{opacity:0;transform:translateY(18px) rotate(-2deg) scale(.96)}to{opacity:1;transform:translateY(0) rotate(0deg) scale(1)}}
+.gallery-close{position:absolute;top:28px;right:32px;width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.42);color:#fff;font-size:24px;cursor:pointer;z-index:2}
+
+@media(max-width:760px){.logo-icon{width:74px}.nav{gap:20px}.upload-orbit{right:16px;top:78px}.overlay-title{left:28px;top:96px}.overlay-title h2{font-size:36px}.overlay-title p{display:none}.owner-pill{left:28px}.photo-stack{transform:scale(.82)}#gallery-view{padding:40px 22px}.timeline{padding-left:24px}}
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="upload-toast">Uploading...</div>
+
+<header id="topbar">
+  <div class="logo-icon">🪐</div>
+  <nav class="nav">
+    <button id="space-tab" class="active">Space</button>
+    <button id="gallery-tab">Gallery</button>
+    <input id="photo-upload" type="file" accept="image/*" multiple />
+  </nav>
+</header>
+<button class="music-btn" id="music-btn">♪</button>
+<audio id="bg-music" src="123.mp3" loop preload="auto"></audio>
+<label class="upload-orbit" id="upload-orbit" for="photo-upload"><span>Upload</span></label>
+<div class="user-badge-global" id="user-badge-global">User: 猪宝</div>
+<div id="intro-label">Drifting through the galaxy...</div>
+
+<section id="password-screen">
+  <div class="login-card">
+    <h1>♥Enen Space♥</h1>
+    <p>Enter the access key to unlock the stellar archive.<br><em>Hint: 6 digits, You, Me, Year</em></p>
+    <div class="pass-row">
+      <input id="password-input" type="password" placeholder="Password" />
+      <button class="primary-btn" id="unlock-btn">Unlock</button>
+    </div>
+    <div id="password-error"></div>
+  </div>
+</section>
+
+<div id="hint">Click a planet or floating photo to open Our Observatory.</div>
+<div id="intro-label">Drifting through the galaxy...</div>
+
+<section id="overlay-panel">
+  <div class="overlay-bg-stars"></div>
+  <button class="overlay-close" id="close-overlay">×</button>
+  <div class="overlay-title">
+    <div class="k">Visual Archive</div>
+    <h2>Our Observatory</h2>
+    <p>Uploaded memories appear as a layered photo stack over the planet field. Click the stack to view the next photo.</p>
+  </div>
+  <div class="stack-stage" id="stack-stage">
+    <div class="photo-stack" id="photo-stack"></div>
+    <div class="stack-note">Click stack for next</div>
+  </div>
+  <div class="owner-pill" id="owner-pill">Owner: 猪宝</div>
+</section>
+
+<section id="gallery-view">
+  <div class="gallery-head">
+    <div>
+      <h2>Gallery</h2>
+      <p>Timeline by month. Double-click title to edit text. Tap ♥ → Edit to change date.</p>
+    </div>
+  </div>
+  <div class="timeline" id="timeline"></div>
+</section>
+
+<section id="gallery-fullscreen">
+  <button class="gallery-close" id="gallery-close">×</button>
+  <img id="gallery-fullscreen-img" alt="gallery image" />
+</section>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   SUPABASE CONFIG
+   Project: ozrjgqhxivovnmvpkrfs
+═══════════════════════════════════════════════════ */
+const SUPA_URL = 'https://ozrjgqhxivovnmvpkrfs.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96cmpncWh4aXZvdm5tdnBrcmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjI4NjUsImV4cCI6MjA5NDg5ODg2NX0.pbLhR_tmmlp0logAUnVBUqfjpbxxmQOXLvHByLZ2wVo';
+const BUCKET = 'photos';
+
+/* Supabase helpers — no SDK needed, pure fetch */
+async function sbSelect(table, order='created_at', asc=false){
+  const r = await fetch(
+    `${SUPA_URL}/rest/v1/${table}?select=*&order=${order}.${asc?'asc':'desc'}`,
+    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
+  );
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbInsert(table, row){
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+              'Content-Type':'application/json','Prefer':'return=representation'},
+    body: JSON.stringify(row)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbUpdate(table, id, patch){
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method:'PATCH',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+              'Content-Type':'application/json','Prefer':'return=representation'},
+    body: JSON.stringify(patch)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbDelete(table, id){
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method:'DELETE',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+  });
+  if(!r.ok) throw new Error(await r.text());
+}
+
+async function sbUploadFile(file){
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+              'Content-Type': file.type || 'image/jpeg'},
+    body: file
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return `${SUPA_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+function showToast(msg, ms=2800){
+  const t = document.getElementById('upload-toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+/* ═══════════════════════════════════════════════════
+   APP STATE
+═══════════════════════════════════════════════════ */
+const PASSWORD = '970025';
+const RABBIT_IP = '2001:4860:7:f0e::7c';
+const RABBIT_IP_NORMALIZED = RABBIT_IP.toLowerCase().trim();
+let currentUserName = '猪宝';
+let globalSceneUnlock = false;
+let introStart = null;
+let introDone = false;
+let currentView = 'space';
+let currentGalleryIndex = 0;
+let stackIndex = 0;
+
+/* memories — loaded from Supabase, mapped to same shape as before */
+let memories = [];
+
+function dbRowToMemory(row){
+  return {
+    _id: row.id,
+    image: row.url,
+    title: row.caption || 'Uploaded Memory',
+    text: '',
+    owner: row.uploader || '猪宝',
+    date: row.stardate ? row.stardate + 'T12:00:00' : (row.created_at || new Date().toISOString())
+  };
+}
+
+async function loadMemories(){
+  try{
+    const rows = await sbSelect('photos');
+    memories = rows.map(dbRowToMemory);
+    rebuildFloatingPhotos();
+    renderGallery();
+    renderStack(false);
+  }catch(e){ console.error('load failed', e); }
+}
+
+/* ═══════════════════════════════════════════════════
+   USER DETECTION
+═══════════════════════════════════════════════════ */
+function normalizeIP(ip){return String(ip||'').toLowerCase().trim().replace(/^\[|\]$/g,'')}
+function applyUserByIP(ip){
+  const detected = normalizeIP(ip);
+  currentUserName = detected === RABBIT_IP_NORMALIZED ? '兔宝' : '猪宝';
+  const badge = document.getElementById('user-badge-global');
+  if(badge) badge.textContent = `User: ${currentUserName}`;
+}
+async function detectUserByIP(){
+  applyUserByIP('');
+  const services=['https://api64.ipify.org?format=json','https://api.ipify.org?format=json'];
+  for(const url of services){
+    try{
+      const res=await fetch(url,{cache:'no-store'});
+      const data=await res.json();
+      applyUserByIP(data.ip||'');
+      if(normalizeIP(data.ip||'')=== RABBIT_IP_NORMALIZED) return;
+    }catch(e){}
+  }
+}
+detectUserByIP();
+
+/* ═══════════════════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════════════════ */
+const passwordScreen=document.getElementById('password-screen');
+const passwordInput=document.getElementById('password-input');
+const passwordError=document.getElementById('password-error');
+const topbar=document.getElementById('topbar');
+const uploadOrbit=document.getElementById('upload-orbit');
+const userBadgeGlobal=document.getElementById('user-badge-global');
+const introLabel=document.getElementById('intro-label');
+const hint=document.getElementById('hint');
+const spaceTab=document.getElementById('space-tab');
+const galleryTab=document.getElementById('gallery-tab');
+const galleryView=document.getElementById('gallery-view');
+const timeline=document.getElementById('timeline');
+const overlayPanel=document.getElementById('overlay-panel');
+const photoStack=document.getElementById('photo-stack');
+const stackStage=document.getElementById('stack-stage');
+const ownerPill=document.getElementById('owner-pill');
+const galleryFullscreen=document.getElementById('gallery-fullscreen');
+const galleryFullscreenImg=document.getElementById('gallery-fullscreen-img');
+const uploadInput=document.getElementById('photo-upload');
+const musicBtn=document.getElementById('music-btn');
+const bgMusic=document.getElementById('bg-music');
+
+musicBtn.addEventListener('click',async()=>{
+  try{
+    if(bgMusic.paused){await bgMusic.play();musicBtn.classList.add('playing');musicBtn.textContent='♫';}
+    else{bgMusic.pause();musicBtn.classList.remove('playing');musicBtn.textContent='♪';}
+  }catch(e){musicBtn.textContent='♪';}
+});
+
+function unlockArchive(){
+  if(passwordInput.value.trim()===PASSWORD){
+    globalSceneUnlock=true;introStart=performance.now();introDone=false;
+    passwordScreen.classList.add('hidden');
+    topbar.style.display='flex';uploadOrbit.style.display='flex';
+    document.getElementById('music-btn').style.display='block';
+    userBadgeGlobal.style.display='block';introLabel.style.display='block';hint.style.display='none';
+    detectUserByIP();
+    loadMemories(); /* load from Supabase */
+  }else passwordError.textContent='Incorrect key. Try again.';
+}
+document.getElementById('unlock-btn').addEventListener('click',unlockArchive);
+passwordInput.addEventListener('keydown',e=>{if(e.key==='Enter')unlockArchive();});
+
+/* ═══════════════════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════════════════ */
+function setActive(view){spaceTab.classList.remove('active');galleryTab.classList.remove('active');if(view==='space')spaceTab.classList.add('active');if(view==='gallery')galleryTab.classList.add('active')}
+function showSpace(){currentView='space';galleryView.classList.remove('active');galleryFullscreen.classList.remove('active');overlayPanel.classList.remove('active');hint.style.display=globalSceneUnlock&&introDone?'block':'none';setActive('space')}
+function showGallery(){currentView='gallery';overlayPanel.classList.remove('active');galleryView.classList.add('active');hint.style.display='none';setActive('gallery');renderGallery()}
+spaceTab.addEventListener('click',showSpace);galleryTab.addEventListener('click',showGallery);
+
+/* ═══════════════════════════════════════════════════
+   STACK OVERLAY
+═══════════════════════════════════════════════════ */
+function openStackOverlay(startIndex=0){if(!globalSceneUnlock||currentView!=='space'||!introDone)return;stackIndex=startIndex%Math.max(1,memories.length);renderStack(true);overlayPanel.classList.add('active')}
+function closeOverlay(){overlayPanel.classList.remove('active')}
+document.getElementById('close-overlay').addEventListener('click',closeOverlay);
+overlayPanel.addEventListener('click',e=>{if(e.target===overlayPanel)closeOverlay()});
+stackStage.addEventListener('click',e=>{e.stopPropagation();if(!memories.length)return;stackIndex=(stackIndex+1)%memories.length;renderStack(true)});
+
+function renderStack(animateTop=false){
+  photoStack.innerHTML='';
+  if(!memories.length)return;
+  ownerPill.textContent=`Owner: ${memories[stackIndex]?.owner||'猪宝'}`;
+  const maxCards=Math.min(memories.length,7);
+  for(let layer=maxCards-1;layer>=0;layer--){
+    const dataIndex=(stackIndex+layer)%memories.length,m=memories[dataIndex],card=document.createElement('div');
+    card.className='stack-card'+(layer===0&&animateTop?' top-card':'');
+    const direction=dataIndex%2===0?1:-1;
+    const x=direction*(layer*22+8),y=layer*11,r=direction*([5,9,4,12,7,10,6][layer%7]),scale=1-layer*.035,op=1-layer*.075;
+    card.style.setProperty('--x',`${x}px`);card.style.setProperty('--y',`${y}px`);card.style.setProperty('--r',`${r}deg`);
+    card.style.setProperty('--scale',scale);card.style.setProperty('--op',op);card.style.setProperty('--z',maxCards-layer);
+    card.style.setProperty('--enterX',`${direction*70}px`);card.style.setProperty('--enterR',`${direction*12}deg`);
+    card.style.setProperty('--flipX',`${direction*-90}px`);card.style.setProperty('--flipR',`${direction*-14}deg`);
+    card.dataset.label=`${m.owner||'猪宝'} · ${m.title||'Uploaded Memory'}`;
+    card.innerHTML=`<img src="${m.image}" alt="${m.title||'memory'}">`;
+    photoStack.appendChild(card);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   GALLERY
+═══════════════════════════════════════════════════ */
+function formatMonth(dateStr){const d=new Date(dateStr);return d.toLocaleString('en-US',{month:'long',year:'numeric'})}
+function formatDate(dateStr){const d=new Date(dateStr);return d.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'})}
+
+function renderGallery(){
+  timeline.innerHTML='';
+  if(!memories.length){timeline.innerHTML='<p style="font-family:JetBrains Mono,monospace;font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.08em">No memories yet. Upload your first photo ✦</p>';return;}
+  const sorted=[...memories].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const groups={};sorted.forEach(m=>{const key=formatMonth(m.date);if(!groups[key])groups[key]=[];groups[key].push(m)});
+  Object.entries(groups).forEach(([month,items])=>{
+    const group=document.createElement('section');group.className='month-group';
+    group.innerHTML=`<div class="month-title">${month}</div><div class="gallery-grid"></div>`;
+    const grid=group.querySelector('.gallery-grid');
+    items.forEach(m=>{
+      const index=memories.indexOf(m);
+      const item=document.createElement('div');
+      item.className='gallery-item';item.style.setProperty('--r',`${[-2,1.5,-1,2.2,-1.8][index%5]}deg`);
+      item.innerHTML=`<img src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
+      item.querySelector('img').addEventListener('click',()=>openGalleryImage(index));
+
+      /* inline title edit → sync to Supabase */
+      const title=item.querySelector('.gallery-title-edit');
+      title.addEventListener('dblclick',e=>{e.stopPropagation();title.contentEditable='true';title.focus();document.execCommand('selectAll',false,null)});
+      title.addEventListener('blur',async()=>{
+        title.contentEditable='false';
+        const v=title.textContent.trim()||'Untitled Memory';
+        m.title=v;
+        if(m._id){
+          try{ await sbUpdate('photos', m._id, {caption:v}); }
+          catch(e){ console.error('update caption failed',e); }
+        }
+        renderStack(false);
+      });
+      title.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();title.blur()}});
+
+      const heart=item.querySelector('.heart-btn');
+      const actions=item.querySelector('.card-actions');
+      heart.addEventListener('click',e=>{e.stopPropagation();heart.classList.toggle('active');actions.classList.toggle('active')});
+      item.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditMemory(index)});
+      item.querySelector('.delete-action').addEventListener('click',e=>{e.stopPropagation();deleteMemory(index)});
+      grid.appendChild(item);
+    });
+    timeline.appendChild(group);
+  });
+}
+
+async function openEditMemory(index){
+  const item=memories[index];if(!item)return;
+  const currentDate=(item.date||new Date().toISOString()).slice(0,10);
+  const nextDate=prompt('Edit date (YYYY-MM-DD):',currentDate);
+  if(nextDate===null)return;
+  const cleanDate=nextDate.trim();
+  if(cleanDate.length===10&&cleanDate[4]==='-'&&cleanDate[7]==='-'){
+    item.date=cleanDate+'T12:00:00';
+    if(item._id){
+      try{ await sbUpdate('photos',item._id,{stardate:cleanDate}); }
+      catch(e){ console.error('update date failed',e); }
+    }
+  }
+  renderGallery();renderStack(false);
+}
+
+async function deleteMemory(index){
+  if(!confirm('Delete this photo?'))return;
+  const item=memories[index];
+  if(item&&item._id){
+    try{ await sbDelete('photos',item._id); }
+    catch(e){ console.error('delete failed',e); }
+  }
+  memories.splice(index,1);
+  rebuildFloatingPhotos();renderGallery();
+  if(!memories.length)closeOverlay();
+  else stackIndex=stackIndex%Math.max(1,memories.length);
+}
+
+function openGalleryImage(index){currentGalleryIndex=index;galleryFullscreenImg.src=memories[index].image;galleryFullscreen.classList.add('active')}
+function nextGalleryImage(){if(!memories.length)return;currentGalleryIndex=(currentGalleryIndex+1)%memories.length;galleryFullscreenImg.style.animation='none';void galleryFullscreenImg.offsetWidth;galleryFullscreenImg.src=memories[currentGalleryIndex].image;galleryFullscreenImg.style.animation='galleryImageIn .38s cubic-bezier(.18,.9,.18,1) both'}
+function closeGalleryImage(){galleryFullscreen.classList.remove('active')}
+document.getElementById('gallery-close').addEventListener('click',e=>{e.stopPropagation();closeGalleryImage()});
+galleryFullscreen.addEventListener('click',e=>{if(e.target.classList.contains('gallery-close'))return;nextGalleryImage()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOverlay();closeGalleryImage()}});
+
+/* ═══════════════════════════════════════════════════
+   UPLOAD — file → Supabase Storage → DB row
+═══════════════════════════════════════════════════ */
+uploadInput.addEventListener('change',async e=>{
+  const files=Array.from(e.target.files||[]);
+  if(!files.length)return;
+  uploadInput.value='';
+  showToast(`Uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
+
+  for(const file of files){
+    try{
+      /* 1. upload image to Supabase Storage */
+      const publicUrl = await sbUploadFile(file);
+
+      /* 2. insert row into photos table */
+      const now = new Date();
+      const stardate = now.toISOString().slice(0,10);
+      const [inserted] = await sbInsert('photos',{
+        url: publicUrl,
+        caption: 'Uploaded Memory',
+        stardate: stardate,
+        ts: now.getTime(),
+        callsign: '',
+        uploader: currentUserName,
+        filename: file.name
+      });
+
+      /* 3. add to local memories array */
+      const mem = dbRowToMemory(inserted);
+      memories.unshift(mem);
+      addPhotoNearPlanet(mem.image, 0);
+      renderGallery();
+      if(currentView==='space'&&introDone) openStackOverlay(0);
+
+    }catch(err){
+      console.error('upload error',err);
+      showToast('Upload failed — check console', 4000);
+    }
+  }
+  showToast(`✦ ${files.length} photo${files.length>1?'s':''} archived!`);
+});
+
+/* ═══════════════════════════════════════════════════
+   THREE.JS — unchanged from original
+═══════════════════════════════════════════════════ */
+let scene,camera,renderer,runtimeClock,planetPrimary,planetSecondary,floatingPhotoGroup,orbitParticles,planetSwarm;
+let clickableObjects=[];let mouse=new THREE.Vector2();let raycaster=new THREE.Raycaster();
+(function generateDynamicUniverse(){
+  const container=document.getElementById('canvas-container');scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x04040b,.045);camera=new THREE.PerspectiveCamera(58,window.innerWidth/window.innerHeight,.1,120);camera.position.set(0,1.4,11);renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));container.appendChild(renderer.domElement);runtimeClock=new THREE.Clock();scene.add(new THREE.AmbientLight(0xffffff,.5));const key=new THREE.PointLight(0xffb199,1.5,40);key.position.set(-4,4,8);scene.add(key);const fill=new THREE.PointLight(0x78ffd6,1.1,30);fill.position.set(5,-2,6);scene.add(fill);createStarField();createPlanets();createPlanetSwarm();createOrbitParticles();createFloatingPhotoGroup();renderer.domElement.addEventListener('click',handleSceneClick);window.addEventListener('resize',onResize);globalLoop();
+})();
+function createStarField(){const geo=new THREE.BufferGeometry(),count=1200,pos=new Float32Array(count*3);for(let i=0;i<count*3;i++)pos[i]=(Math.random()-.5)*90;geo.setAttribute('position',new THREE.BufferAttribute(pos,3));scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0xffffff,size:.035,transparent:true,opacity:.75})))}
+function createPlanetTexture(colorA,colorB){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d'),g=ctx.createRadialGradient(180,150,20,260,260,300);g.addColorStop(0,'#ffffff');g.addColorStop(.18,colorA);g.addColorStop(1,colorB);ctx.fillStyle=g;ctx.fillRect(0,0,512,512);for(let i=0;i<16;i++){ctx.strokeStyle=`rgba(255,255,255,${Math.random()*.12})`;ctx.lineWidth=10+Math.random()*30;ctx.beginPath();ctx.ellipse(260,110+i*26,250,20+Math.random()*18,Math.random()*.2,0,Math.PI*2);ctx.stroke()}return new THREE.CanvasTexture(canvas)}
+function createPlanets(){const geo=new THREE.SphereGeometry(1.35,96,96);planetPrimary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#D95D39','#35101b'),roughness:.72,metalness:.08}));planetSecondary=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:createPlanetTexture('#62c7a7','#0b2d34'),roughness:.72,metalness:.08}));planetPrimary.userData={type:'planet',index:0};planetSecondary.userData={type:'planet',index:1};scene.add(planetPrimary,planetSecondary);clickableObjects.push(planetPrimary,planetSecondary);const ringGeo=new THREE.TorusGeometry(1.95,.012,12,180),ringMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.22});const ring1=new THREE.Mesh(ringGeo,ringMat);ring1.rotation.x=Math.PI/2.5;planetPrimary.add(ring1);const ring2=new THREE.Mesh(ringGeo,ringMat.clone());ring2.rotation.x=Math.PI/2.7;ring2.rotation.z=.4;planetSecondary.add(ring2)}
+function createPlanetSwarm(){planetSwarm=new THREE.Group();const geo=new THREE.SphereGeometry(.18,32,32),colors=[['#d95d39','#35101b'],['#62c7a7','#0b2d34'],['#ffb7a5','#3b1515'],['#c8fff0','#153a36']];for(let i=0;i<36;i++){const c=colors[i%colors.length],m=new THREE.MeshStandardMaterial({map:createPlanetTexture(c[0],c[1]),roughness:.8,transparent:true,opacity:0});const p=new THREE.Mesh(geo.clone(),m),a=i/36*Math.PI*2,r=2.2+Math.random()*5.8;p.position.set(Math.cos(a)*r,(Math.random()-.5)*3.6,Math.sin(a)*r);p.scale.setScalar(.45+Math.random()*.8);p.userData={a,r,off:Math.random()*6};planetSwarm.add(p)}scene.add(planetSwarm)}
+function createOrbitParticles(){orbitParticles=new THREE.Group();const geo=new THREE.SphereGeometry(.035,10,10);for(let i=0;i<90;i++){const mat=new THREE.MeshBasicMaterial({color:i%2?0xD95D39:0x77d6bd,transparent:true,opacity:.65}),p=new THREE.Mesh(geo,mat),a=i/90*Math.PI*2,r=4.1+Math.random()*1.4;p.position.set(Math.cos(a)*r,(Math.random()-.5)*1.8,Math.sin(a)*r);orbitParticles.add(p)}scene.add(orbitParticles)}
+function createFloatingPhotoGroup(){floatingPhotoGroup=new THREE.Group();scene.add(floatingPhotoGroup)}
+function clearFloatingPhotos(){clickableObjects=clickableObjects.filter(obj=>obj.userData.type!=='photo');while(floatingPhotoGroup.children.length){const child=floatingPhotoGroup.children.pop();if(child.material&&child.material.map)child.material.map.dispose();if(child.material)child.material.dispose()}}
+function rebuildFloatingPhotos(){clearFloatingPhotos();memories.forEach((m,index)=>addPhotoNearPlanet(m.image,index))}
+function addPhotoNearPlanet(imageUrl,index){if(!floatingPhotoGroup)return;const texture=new THREE.TextureLoader().load(imageUrl),material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.92}),sprite=new THREE.Sprite(material),angle=index*.88,radius=2.8+(index%3)*.34;texture.onUpdate=function(){const img=texture.image;if(img&&img.width&&img.height){const aspect=img.width/img.height,base=1.05;if(aspect>=1){sprite.scale.set(base*aspect,base,1);}else{sprite.scale.set(base,base/aspect,1);}}};sprite.scale.set(1.05,1.05,1);sprite.position.set(Math.cos(angle)*radius,Math.sin(angle*1.35)*1.15,Math.sin(angle)*radius);sprite.userData={type:'photo',index};floatingPhotoGroup.add(sprite);clickableObjects.push(sprite)}
+function handleSceneClick(event){if(!globalSceneUnlock||currentView!=='space'||!introDone)return;mouse.x=event.clientX/window.innerWidth*2-1;mouse.y=-(event.clientY/window.innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(clickableObjects,true);if(hits.length){let obj=hits[0].object;while(obj&&!obj.userData.type)obj=obj.parent;if(!obj)return;openStackOverlay(obj.userData.index||0)}}
+function easeInOutQuart(x){return x<.5?8*x*x*x*x:1-Math.pow(-2*x+2,4)/2}
+function globalLoop(){
+  requestAnimationFrame(globalLoop);const elapsed=runtimeClock.getElapsedTime();planetPrimary.rotation.y+=.0025;planetSecondary.rotation.y-=.002;
+  let introP=1;
+  if(globalSceneUnlock&&introStart){introP=Math.min(1,(performance.now()-introStart)/4600);if(introP>=1&&!introDone){introDone=true;introLabel.style.display='none';if(currentView==='space')hint.style.display='block'}}
+  if(!globalSceneUnlock){planetPrimary.visible=true;planetSecondary.visible=true;planetPrimary.scale.set(3.35,3.35,3.35);planetSecondary.scale.set(2.85,2.85,2.85);planetPrimary.position.set(-3.2,Math.sin(elapsed*.5)*.18,0);planetSecondary.position.set(3.2,Math.cos(elapsed*.5)*.18,0);if(floatingPhotoGroup)floatingPhotoGroup.visible=false;if(orbitParticles)orbitParticles.visible=false;if(planetSwarm)planetSwarm.visible=false}
+  else{
+    const e=easeInOutQuart(introP),distanceOrbit=3.0;
+    planetPrimary.scale.setScalar(3.35+(1.25-3.35)*e);planetSecondary.scale.setScalar(2.85+(1.12-2.85)*e);
+    const startA={x:-3.2,y:0,z:0},startB={x:3.2,y:0,z:0};
+    const targetA={x:Math.cos(elapsed*.38)*distanceOrbit,y:Math.sin(elapsed*.7)*.25,z:Math.sin(elapsed*.38)*distanceOrbit};
+    const targetB={x:Math.cos(elapsed*.38+Math.PI)*distanceOrbit,y:Math.cos(elapsed*.7)*.25,z:Math.sin(elapsed*.38+Math.PI)*distanceOrbit};
+    planetPrimary.position.set(startA.x+(targetA.x-startA.x)*e,startA.y+(targetA.y-startA.y)*e,startA.z+(targetA.z-startA.z)*e);
+    planetSecondary.position.set(startB.x+(targetB.x-startB.x)*e,startB.y+(targetB.y-startB.y)*e,startB.z+(targetB.z-startB.z)*e);
+    if(planetSwarm){planetSwarm.visible=currentView==='space'&&introP<.98;planetSwarm.rotation.y=elapsed*.26;planetSwarm.children.forEach((p)=>{const appear=Math.sin(Math.min(1,introP*1.18)*Math.PI);p.material.opacity=appear*.9;p.position.y=Math.sin(elapsed*.95+p.userData.off)*.58})}
+    if(floatingPhotoGroup){floatingPhotoGroup.visible=currentView==='space'&&introDone;floatingPhotoGroup.rotation.y=elapsed*.1}
+    if(orbitParticles){orbitParticles.visible=currentView==='space'&&introDone;orbitParticles.rotation.y=elapsed*.08}
+  }
+  camera.position.x=Math.sin(elapsed*.08)*.45;camera.lookAt(0,0,0);renderer.render(scene,camera);
+}
+function onResize(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight)}
+</script>
+</body>
+</html>
