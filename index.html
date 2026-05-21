@@ -36,6 +36,25 @@ button,input,label{font-family:inherit}
 #upload-toast{position:fixed;bottom:28px;right:28px;z-index:9000;padding:12px 18px;border-radius:12px;border:1px solid rgba(142,232,205,.3);background:rgba(10,20,18,.88);font-family:'JetBrains Mono',monospace;font-size:11px;color:#8ee8cd;letter-spacing:.08em;backdrop-filter:blur(16px);opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
 #upload-toast.show{opacity:1;transform:translateY(0)}
 
+/* date picker modal */
+#date-modal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;background:rgba(3,3,8,.82);backdrop-filter:blur(16px)}
+#date-modal.on{display:flex}
+.date-modal-box{background:rgba(10,10,22,.95);border:1px solid rgba(255,183,165,.28);border-radius:24px;padding:32px 28px 24px;min-width:320px;max-width:90vw;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.date-modal-box h3{font-family:'Syne',sans-serif;font-size:20px;color:#ffb7a5;margin-bottom:6px}
+.date-modal-box p{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,225,218,.5);letter-spacing:.1em;margin-bottom:20px}
+.date-modal-preview{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid rgba(255,183,165,.3);margin:0 auto 16px;display:block}
+.date-modal-counter{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8ee8cd;letter-spacing:.1em;margin-bottom:16px}
+.date-input-wrap{position:relative;margin-bottom:20px}
+#date-modal-input{width:100%;padding:13px 16px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.08);color:#fff;outline:none;font-size:15px;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:.08em}
+#date-modal-input:focus{border-color:rgba(255,183,165,.5)}
+#date-modal-input::placeholder{color:rgba(255,255,255,.3)}
+.date-modal-btns{display:flex;gap:10px;justify-content:center}
+.dm-btn{border:0;border-radius:999px;padding:12px 24px;font-weight:700;cursor:pointer;font-size:13px;transition:.2s}
+.dm-skip{background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.14)}
+.dm-skip:hover{background:rgba(255,255,255,.14)}
+.dm-ok{background:#ffb7a5;color:#07070f}
+.dm-ok:hover{opacity:.88;transform:translateY(-1px)}
+
 #password-screen{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(217,93,57,.18),transparent 38%),rgba(4,4,11,.48);backdrop-filter:blur(1px)}
 .login-card{width:min(420px,88vw);padding:34px 30px;border:1px solid rgba(255,255,255,.18);background:rgba(8,8,18,.56);backdrop-filter:blur(20px);border-radius:28px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}
 .login-card h1{font-family:'Syne',sans-serif;font-size:32px;letter-spacing:-.04em;margin-bottom:10px;color:#ffb7a5}
@@ -79,11 +98,12 @@ button,input,label{font-family:inherit}
 .timeline{max-width:1180px;margin:0 auto 70px;position:relative;padding-left:34px}
 .timeline::before{content:"";position:absolute;left:8px;top:10px;bottom:10px;width:1px;background:linear-gradient(rgba(142,232,205,.4),rgba(255,183,165,.15))}
 .month-group{position:relative;margin-bottom:36px}.month-title{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8ee8cd;letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px}.month-title::before{content:"";position:absolute;left:-31px;top:2px;width:11px;height:11px;border-radius:50%;background:#8ee8cd;box-shadow:0 0 18px rgba(142,232,205,.65)}
-.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:22px}
-.gallery-item{height:286px;background:#f5f1f4;padding:12px 12px 60px;border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.34);cursor:pointer;transition:.25s transform,.25s opacity;transform:rotate(var(--r));position:relative;color:#111}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px}
+.gallery-item{height:175px;background:#f5f1f4;padding:8px 8px 44px;border-radius:3px;box-shadow:0 20px 50px rgba(0,0,0,.34);cursor:pointer;transition:.25s transform,.25s opacity;transform:rotate(var(--r));position:relative;color:#111}
 .gallery-item:hover{transform:translateY(-6px) rotate(var(--r)) scale(1.02);opacity:.95}
 .gallery-item img{width:100%;height:100%;object-fit:cover;display:block;border:1px solid rgba(0,0,0,.08);background:#000}
-.gallery-meta{position:absolute;left:13px;right:48px;bottom:12px;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.35;color:#111;text-transform:uppercase}.gallery-title-edit{font-size:11px;font-weight:700;outline:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gallery-sub{opacity:.7}
+/* gallery item size */
+.gallery-meta{position:absolute;left:10px;right:38px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:7px;line-height:1.35;color:#111;text-transform:uppercase}.gallery-title-edit{font-size:9px;font-weight:700;outline:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gallery-sub{opacity:.7}
 .heart-btn{position:absolute;right:10px;bottom:18px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.58);color:#d95d39;cursor:pointer;font-size:14px;transition:.2s}.heart-btn:hover,.heart-btn.active{background:#ffd8d0;color:#9b2f21;transform:scale(1.06)}.card-actions{position:absolute;right:10px;bottom:52px;display:none;flex-direction:column;gap:6px;z-index:5}.card-actions.active{display:flex;animation:menuPop .18s ease both}.card-actions button{border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.9);color:#111;border-radius:999px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;cursor:pointer}.card-actions button:hover{background:#111;color:#fff}@keyframes menuPop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 #gallery-fullscreen{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.9);padding:34px;cursor:pointer}
@@ -157,6 +177,23 @@ button,input,label{font-family:inherit}
   <button class="gallery-close" id="gallery-close">×</button>
   <img id="gallery-fullscreen-img" alt="gallery image" />
 </section>
+
+<!-- DATE PICKER MODAL -->
+<div id="date-modal">
+  <div class="date-modal-box">
+    <img class="date-modal-preview" id="dm-preview" src="" alt="">
+    <h3>When was this taken?</h3>
+    <p>Enter a date for this memory</p>
+    <div class="date-modal-counter" id="dm-counter">Photo 1 of 1</div>
+    <div class="date-input-wrap">
+      <input id="date-modal-input" type="date" />
+    </div>
+    <div class="date-modal-btns">
+      <button class="dm-btn dm-skip" id="dm-skip">Skip</button>
+      <button class="dm-btn dm-ok" id="dm-ok">Confirm ✦</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════════
@@ -262,6 +299,8 @@ function dbRowToMemory(row){
   return {
     _id: row.id,
     image: row.url,
+    /* no thumbnail transform — use full image */
+    thumb: row.url,
     title: row.caption || 'Uploaded Memory',
     text: '',
     owner: row.uploader || '猪宝',
@@ -273,6 +312,7 @@ async function loadMemories(){
   try{
     const rows = await sbSelect('photos');
     memories = rows.map(dbRowToMemory);
+    /* only put newest 6 in 3D scene to keep GPU light */
     rebuildFloatingPhotos();
     renderGallery();
     renderStack(false);
@@ -405,7 +445,7 @@ function renderGallery(){
       const index=memories.indexOf(m);
       const item=document.createElement('div');
       item.className='gallery-item';item.style.setProperty('--r',`${[-2,1.5,-1,2.2,-1.8][index%5]}deg`);
-      item.innerHTML=`<img src="${m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
+      item.innerHTML=`<img loading="lazy" decoding="async" src="${m.thumb||m.image}" alt="${m.title||'photo'}"><div class="gallery-meta"><span class="gallery-title-edit" contenteditable="false">${m.title||'Uploaded Memory'}</span><span class="gallery-sub">${formatDate(m.date)} · ${m.owner||'猪宝'}</span></div><button class="heart-btn" title="Options">♥</button><div class="card-actions"><button class="edit-btn">Edit</button><button class="delete-action">Delete</button></div>`;
       item.querySelector('img').addEventListener('click',()=>openGalleryImage(index));
 
       /* inline title edit → sync to Supabase */
@@ -471,45 +511,111 @@ galleryFullscreen.addEventListener('click',e=>{if(e.target.classList.contains('g
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOverlay();closeGalleryImage()}});
 
 /* ═══════════════════════════════════════════════════
-   UPLOAD — file → Supabase Storage → DB row
+   DATE MODAL QUEUE — one photo at a time
 ═══════════════════════════════════════════════════ */
-uploadInput.addEventListener('change',async e=>{
-  const files=Array.from(e.target.files||[]);
-  if(!files.length)return;
-  uploadInput.value='';
-  showToast(`Uploading ${files.length} photo${files.length>1?'s':''}...`, 30000);
+let uploadQueue=[];       /* files waiting to be dated */
+let uploadResults=[];     /* {file, date} pairs confirmed */
+let uploadQueueIdx=0;
 
-  for(const file of files){
-    try{
-      /* 1. upload image to Supabase Storage */
-      const publicUrl = await sbUploadFile(file);
+function openDateModal(files){
+  uploadQueue=Array.from(files);
+  uploadResults=[];
+  uploadQueueIdx=0;
+  showDateModalStep();
+}
 
-      /* 2. insert row into photos table */
-      const now = new Date();
-      const stardate = now.toISOString().slice(0,10);
-      const [inserted] = await sbInsert('photos',{
-        url: publicUrl,
-        caption: 'Uploaded Memory',
-        stardate: stardate,
-        ts: now.getTime(),
-        callsign: '',
-        uploader: currentUserName,
-        filename: file.name
-      });
-
-      /* 3. add to local memories array */
-      const mem = dbRowToMemory(inserted);
-      memories.unshift(mem);
-      addPhotoNearPlanet(mem.image, 0);
-      renderGallery();
-      if(currentView==='space'&&introDone) openStackOverlay(0);
-
-    }catch(err){
-      console.error('upload error',err);
-      showToast('Upload failed — check console', 4000);
-    }
+function showDateModalStep(){
+  if(uploadQueueIdx>=uploadQueue.length){
+    /* all files dated — start uploading */
+    document.getElementById('date-modal').classList.remove('on');
+    doUploadQueue();
+    return;
   }
-  showToast(`✦ ${files.length} photo${files.length>1?'s':''} archived!`);
+  const file=uploadQueue[uploadQueueIdx];
+  const total=uploadQueue.length;
+  const idx=uploadQueueIdx+1;
+
+  /* preview thumbnail */
+  const previewUrl=URL.createObjectURL(file);
+  const prev=document.getElementById('dm-preview');
+  if(prev._prevUrl)URL.revokeObjectURL(prev._prevUrl);
+  prev.src=previewUrl;prev._prevUrl=previewUrl;
+
+  document.getElementById('dm-counter').textContent=`Photo ${idx} of ${total}`;
+  /* default date = today */
+  document.getElementById('date-modal-input').value=new Date().toISOString().slice(0,10);
+  document.getElementById('date-modal').classList.add('on');
+}
+
+document.getElementById('dm-ok').addEventListener('click',()=>{
+  const val=document.getElementById('date-modal-input').value;
+  const date=val||new Date().toISOString().slice(0,10);
+  uploadResults.push({file:uploadQueue[uploadQueueIdx],date});
+  uploadQueueIdx++;
+  showDateModalStep();
+});
+
+document.getElementById('dm-skip').addEventListener('click',()=>{
+  /* skip = use today's date */
+  uploadResults.push({file:uploadQueue[uploadQueueIdx],date:new Date().toISOString().slice(0,10)});
+  uploadQueueIdx++;
+  showDateModalStep();
+});
+
+/* also allow Enter key in date input */
+document.getElementById('date-modal-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter')document.getElementById('dm-ok').click();
+});
+
+async function doUploadQueue(){
+  if(!uploadResults.length)return;
+  const total=uploadResults.length;
+  showToast(`Uploading 1/${total}...`,60000);
+  let done=0;
+
+  /* upload in batches of 3 — prevents browser from choking on 50 at once */
+  for(let i=0;i<uploadResults.length;i+=3){
+    const batch=uploadResults.slice(i,i+3);
+    await Promise.all(batch.map(async({file,date})=>{
+      try{
+        const publicUrl=await sbUploadFile(file);
+        const ts=new Date(date+'T12:00:00').getTime();
+        const [inserted]=await sbInsert('photos',{
+          url:publicUrl,
+          caption:'Uploaded Memory',
+          stardate:date,
+          ts:isNaN(ts)?Date.now():ts,
+          callsign:'',
+          uploader:currentUserName,
+          filename:file.name
+        });
+        const mem=dbRowToMemory(inserted);
+        memories.unshift(mem);
+        done++;
+        showToast(`Uploading ${done}/${total}...`,60000);
+      }catch(err){
+        console.error('upload error',err);
+      }
+    }));
+    /* small pause between batches to let browser breathe */
+    if(i+3<uploadResults.length) await new Promise(r=>setTimeout(r,400));
+  }
+
+  /* rebuild UI once after all done */
+  rebuildFloatingPhotos();
+  renderGallery();
+  if(currentView==='space'&&introDone&&memories.length)openStackOverlay(0);
+  showToast(`✦ ${done} photo${done>1?'s':''} archived!`);
+}
+
+/* ═══════════════════════════════════════════════════
+   UPLOAD trigger
+═══════════════════════════════════════════════════ */
+uploadInput.addEventListener('change',e=>{
+  const files=Array.from(e.target.files||[]);
+  uploadInput.value='';
+  if(!files.length)return;
+  openDateModal(files);
 });
 
 /* ═══════════════════════════════════════════════════
@@ -527,8 +633,12 @@ function createPlanetSwarm(){planetSwarm=new THREE.Group();const geo=new THREE.S
 function createOrbitParticles(){orbitParticles=new THREE.Group();const geo=new THREE.SphereGeometry(.035,6,6);for(let i=0;i<40;i++){const mat=new THREE.MeshBasicMaterial({color:i%2?0xD95D39:0x77d6bd,transparent:true,opacity:.65}),p=new THREE.Mesh(geo,mat),a=i/40*Math.PI*2,r=4.1+Math.random()*1.4;p.position.set(Math.cos(a)*r,(Math.random()-.5)*1.8,Math.sin(a)*r);orbitParticles.add(p)}scene.add(orbitParticles)}
 function createFloatingPhotoGroup(){floatingPhotoGroup=new THREE.Group();scene.add(floatingPhotoGroup)}
 function clearFloatingPhotos(){clickableObjects=clickableObjects.filter(obj=>obj.userData.type!=='photo');while(floatingPhotoGroup.children.length){const child=floatingPhotoGroup.children.pop();if(child.material&&child.material.map)child.material.map.dispose();if(child.material)child.material.dispose()}}
-function rebuildFloatingPhotos(){clearFloatingPhotos();memories.slice(0,6).forEach((m,index)=>addPhotoNearPlanet(m.image,index))}
-function addPhotoNearPlanet(imageUrl,index){if(!floatingPhotoGroup)return;const texture=new THREE.TextureLoader().load(imageUrl),material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.92}),sprite=new THREE.Sprite(material),angle=index*.88,radius=2.8+(index%3)*.34;texture.onUpdate=function(){const img=texture.image;if(img&&img.width&&img.height){const aspect=img.width/img.height,base=1.05;if(aspect>=1){sprite.scale.set(base*aspect,base,1);}else{sprite.scale.set(base,base/aspect,1);}}};sprite.scale.set(1.05,1.05,1);sprite.position.set(Math.cos(angle)*radius,Math.sin(angle*1.35)*1.15,Math.sin(angle)*radius);sprite.userData={type:'photo',index};floatingPhotoGroup.add(sprite);clickableObjects.push(sprite)}
+function rebuildFloatingPhotos(){
+  clearFloatingPhotos();
+  /* only show 3 photos in 3D — newest ones — keeps GPU fast */
+  memories.slice(0,3).forEach((m,index)=>addPhotoNearPlanet(m.image,index));
+}
+function addPhotoNearPlanet(imageUrl,index){if(!floatingPhotoGroup)return;const texture=new THREE.TextureLoader().load(imageUrl),material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.88}),sprite=new THREE.Sprite(material),angle=index*.88,radius=2.8+(index%3)*.34;texture.onUpdate=function(){const img=texture.image;if(img&&img.width&&img.height){const aspect=img.width/img.height,base=0.38;if(aspect>=1){sprite.scale.set(base*aspect,base,1);}else{sprite.scale.set(base,base/aspect,1);}}};sprite.scale.set(0.38,0.38,1);sprite.position.set(Math.cos(angle)*radius,Math.sin(angle*1.35)*1.15,Math.sin(angle)*radius);sprite.userData={type:'photo',index};floatingPhotoGroup.add(sprite);clickableObjects.push(sprite)}
 function handleSceneClick(event){if(!globalSceneUnlock||currentView!=='space'||!introDone)return;mouse.x=event.clientX/window.innerWidth*2-1;mouse.y=-(event.clientY/window.innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(clickableObjects,true);if(hits.length){let obj=hits[0].object;while(obj&&!obj.userData.type)obj=obj.parent;if(!obj)return;openStackOverlay(obj.userData.index||0)}}
 function easeInOutQuart(x){return x<.5?8*x*x*x*x:1-Math.pow(-2*x+2,4)/2}
 function globalLoop(){
